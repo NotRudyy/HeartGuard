@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeartGuard – Heart Attack Risk Checker</title>
+<meta name="description" content="Free web app to estimate heart attack risk from age, blood pressure, cholesterol and heart rate, with precautions and cardiac hospitals by Indian state and city.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+<aside class="side">
+ <div class="logo"><span class="lg">&#10084;</span><div><b>HeartGuard</b><small>Your Heart, Our Priority</small></div></div>
+ <nav id="nav">
+  <button data-go="home">Home</button>
+  <button data-go="location" data-k="assess">Risk Assessment</button>
+  <button data-go="tips">Health Tips</button>
+  <button data-go="hospitals">Hospitals</button>
+  <button data-go="emergency">Emergency</button>
+  <button data-go="dashboard">Daily Check-in</button>
+  <button data-go="about">About</button>
+ </nav>
+ <p class="disc">This tool provides an educational estimate and is not a substitute for professional medical advice.</p>
+</aside>
+
+<div class="main">
+ <div class="top"><span id="who"></span><button class="btn ghost sm" id="loginBtn">Login</button></div>
+
+ <section class="page" id="p-home">
+  <div class="hero">
+   <div><h1>Check Your<br>Heart Health</h1>
+   <p>A simple, free and confidential heart attack risk assessment with personalized guidance, health tips and nearby hospitals.</p>
+   <button class="btn" data-go="location">Start Assessment &rarr;</button>
+   <button class="btn ghost" data-go="about">Learn How It Works</button></div>
+   <div class="art">&#10084;</div>
+  </div>
+  <div class="feat">
+   <div><b>Quick &amp; Easy</b><small>Takes just a few minutes</small></div>
+   <div><b>Personalized Advice</b><small>Based on your inputs</small></div>
+   <div><b>Nearby Hospitals</b><small>State &amp; city wise</small></div>
+   <div><b>Healthier You</b><small>Small changes, big impact</small></div>
+  </div>
+ </section>
+
+ <section class="page" id="p-location">
+  <div class="steps"><small>Step 1 of 3</small><i style="width:33%"></i></div>
+  <h2>Select Your Location</h2>
+  <p class="mut">We'll show you nearby hospitals and relevant health information for your area.</p>
+  <div class="card narrow">
+   <label>State<select id="state"></select></label>
+   <label>City<select id="city"></select></label>
+   <button class="btn full" id="toForm">Continue &rarr;</button>
+   <small class="mut">Your location helps us show the most relevant hospitals and local health resources.</small>
+  </div>
+ </section>
+
+ <section class="page" id="p-form">
+  <div class="steps"><small>Step 2 of 3</small><i style="width:66%"></i></div>
+  <h2>Health Assessment</h2>
+  <p class="mut">Please provide the following information about your health.</p>
+  <div class="card">
+   <div class="grid">
+    <label>Age *<input id="age" type="number" inputmode="numeric" placeholder="Enter your age"></label>
+    <label>Gender *<select id="gender"><option value="">Select gender</option><option value="M">Male</option><option value="F">Female</option></select></label>
+    <label>Systolic BP (mmHg) *<input id="sys" type="number" inputmode="numeric" placeholder="e.g. 120"></label>
+    <label>Diastolic BP (mmHg) *<input id="dia" type="number" inputmode="numeric" placeholder="e.g. 80"></label>
+    <label>Total Cholesterol (mg/dL) *<input id="chol" type="number" inputmode="numeric" placeholder="e.g. 180"></label>
+    <label>Resting Heart Rate (bpm) *<input id="hr" type="number" inputmode="numeric" placeholder="e.g. 72"></label>
+    <div class="yn"><b>Smoking *</b><label><input type="radio" name="smoking" value="0" checked> No</label><label><input type="radio" name="smoking" value="1"> Yes</label></div>
+    <div class="yn"><b>Diabetes *</b><label><input type="radio" name="diabetes" value="0" checked> No</label><label><input type="radio" name="diabetes" value="1"> Yes</label></div>
+    <div class="yn"><b>Family history of heart disease</b><label><input type="radio" name="family" value="0" checked> No</label><label><input type="radio" name="family" value="1"> Yes</label></div>
+    <div class="yn"><b>Chest pain or breathlessness</b><label><input type="radio" name="chest" value="0" checked> No</label><label><input type="radio" name="chest" value="1"> Yes</label></div>
+   </div>
+   <p class="err" id="err" role="alert"></p>
+   <div class="row"><button class="btn ghost" data-go="location">&larr; Back</button><button class="btn" id="submit">Next &rarr;</button></div>
+  </div>
+ </section>
+
+ <section class="page" id="p-result">
+  <div class="steps"><small>Step 3 of 3</small><i style="width:100%"></i></div>
+  <div class="banner" id="banner"><div><h2 id="rTitle"></h2><small id="rSub"></small></div><button class="btn ghost sm" id="playAlert">&#128266; Play Alert</button></div>
+  <div class="card res">
+   <div class="ring" id="ring"><div><b id="rScore"></b><small>Risk Score</small></div></div>
+   <div><h3>Key Risk Factors</h3><ul id="rFactors"></ul></div>
+  </div>
+  <div class="card"><h3>What This Means</h3><p class="mut" id="rMeans"></p>
+   <div id="sos" class="sos"><a href="tel:108">Ambulance 108</a><a href="tel:112">Emergency 112</a><button class="btn ghost sm" id="sosAgain">Run SOS demo</button></div></div>
+  <p class="disclaimer"><b>Medical Disclaimer:</b> HeartGuard is an educational prototype and does not provide medical diagnosis or emergency dispatch. It must not replace professional medical advice, diagnosis, or treatment. If you have symptoms of a medical emergency, call 112 or your local emergency service immediately.</p>
+  <div class="row"><button class="btn" data-go="tips">View Precautions &amp; Tips</button><button class="btn ghost" data-go="hospitals">Find Nearby Hospitals</button></div>
+ </section>
+
+ <section class="page" id="p-tips">
+  <div class="tabs" id="tipTabs"><button data-t="precautions" class="on">Precautions</button><button data-t="exercise">Exercise &amp; Fitness</button><button data-t="diet">Diet &amp; Lifestyle</button></div>
+  <div id="tipBody"></div>
+ </section>
+
+ <section class="page" id="p-emergency">
+  <div class="alertbox"><h2>Emergency Numbers (India)</h2><p>In case of severe chest pain, breathing difficulty or other emergency symptoms, call immediately.</p>
+   <div class="two"><a href="tel:112"><b>112</b><small>National Emergency Number (Police, Fire, Ambulance)</small></a><a href="tel:108"><b>108 / 102</b><small>Ambulance Services</small></a></div></div>
+  <div class="card"><h3>When to seek emergency care?</h3><ul class="red"><li>Severe chest pain or pressure</li><li>Sudden shortness of breath</li><li>Fainting or loss of consciousness</li><li>Pain in arm, jaw, neck or back</li></ul><b>Time matters. Don't wait.</b></div>
+  <div class="card narrow"><h3>Trusted Contact (optional)</h3>
+   <p class="mut">Used only in the SOS demo. It is saved in this browser and no SMS or call is ever sent.</p>
+   <label>Contact name<input id="tcName" placeholder="e.g. Priya Sharma"></label>
+   <label>Phone number<input id="tcPhone" inputmode="tel" placeholder="+91 98XXXXXXXX"></label>
+   <label>Relationship<select id="tcRel"><option>Parent</option><option>Friend</option><option>Guardian</option><option>Spouse</option><option>Other</option></select></label>
+   <p class="mut" id="tcMsg" role="status"></p><button class="btn" id="tcSave">Save contact</button></div>
+ </section>
+
+ <section class="page" id="p-hospitals">
+  <h2>Recommended Hospitals Near You</h2>
+  <div class="locrow"><select id="hState"></select><select id="hCity"></select></div>
+  <div class="tabs" id="hTabs"><button data-f="all" class="on">Cardiology</button><button data-f="multi">Multi-Speciality</button><button data-f="gov">Government</button><button data-f="pvt">Private</button></div>
+  <div id="hList"></div>
+  <small class="mut">Phone numbers change often, so "View on Map" opens the current listing and number on Google Maps. Confirm before you travel.</small>
+ </section>
+
+ <section class="page" id="p-about">
+  <h2>About HeartGuard</h2>
+  <div class="card"><p>HeartGuard estimates heart attack risk from age, gender, blood pressure, cholesterol, resting heart rate, smoking, diabetes, family history and symptoms. Each factor adds points, and the total becomes a score out of 10 and a Low, Moderate or High level.</p>
+  <p>It is a college project for education. It is not a diagnosis. Always speak to a doctor about your heart health. In an emergency call 108 or 112.</p></div>
+ </section>
+
+ <section class="page" id="p-login">
+  <h2>Login</h2><p class="mut">Log in to save your daily check-ins. This is a demo login with no password.</p>
+  <div class="card narrow"><label>Your name<input id="lName"></label><label>Login ID<input id="lId" placeholder="e.g. alex.k"></label>
+  <p class="err" id="lErr"></p><button class="btn full" id="lGo">Log in</button></div>
+ </section>
+
+ <section class="page" id="p-dashboard">
+  <div class="dark"><h2 id="dHi"></h2><p>You're building healthier heart habits. Log your check-in daily to see your trend.</p></div>
+  <div class="stats" id="dStats"></div>
+  <div class="card"><h3>Weekly Rhythm <small class="mut">(resting heart rate, last 7 check-ins)</small></h3><div class="bars" id="dBars"></div></div>
+  <div class="card"><h3>Today's Check-in</h3>
+   <div class="grid4"><label>Heart rate<input id="ch" type="number" placeholder="bpm"></label><label>Systolic<input id="cs" type="number"></label><label>Diastolic<input id="cd" type="number"></label><label>Steps<input id="cst" type="number"></label>
+   <label>Mood<select id="cm"><option>Good</option><option>Okay</option><option>Low</option></select></label></div>
+   <p class="err" id="cErr"></p><button class="btn" id="cGo">Log today's check-in</button></div>
+ </section>
+</div>
+</div>
+<div id="sosModal" class="sos-modal" role="alertdialog" aria-modal="true" aria-labelledby="sosTitle"><div class="sos-box" id="sosBody"></div></div>
+<script src="script.js"></script>
+</body>
+</html>
