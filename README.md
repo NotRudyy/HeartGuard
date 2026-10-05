@@ -15,6 +15,7 @@ A web application designed to estimate heart attack risk based on physiological 
   - Browse verified cardiac hospitals across multiple Indian states and cities.
 - **Emergency Assistance:**
   - One-click emergency contact guides (112, 102, 108) and essential first-aid steps during a suspected cardiac event.
+  - Optional, consent-based SMS updates after each assessment: high/moderate estimates send an alert and low estimates send a normal update when Twilio is configured.
 - **Daily Health Tracker / Dashboard:**
   - Log daily vitals including Blood Pressure, Resting Heart Rate, Daily Steps, and Mood.
 - **Clean Architecture & Fast Performance:**
@@ -37,6 +38,8 @@ heartguard/
 │   ├── style.css           # Styling and responsive layout
 │   └── script.js           # Client-side interactions & API calls
 ├── .gitignore              # Files and folders excluded from Git tracking
+├── index.py                # Vercel Flask function entry point
+├── requirements.txt        # Root dependency entry for Vercel
 └── README.md               # Project documentation
 ```
 
@@ -75,6 +78,41 @@ heartguard/
    ```bash
    pip install -r backend/requirements.txt
    ```
+
+### Optional automatic SMS setup
+
+Demo mode is on by default. It stores a preview contact in the browser and displays the normal-message or risk-alert text after an assessment; it does not call the SMS endpoints or send any message. To use real SMS, explicitly turn demo mode off, verify the phone number, and confirm the recipient's consent. Real sending remains unavailable until the server has Twilio credentials. Keep these values in your local environment or the hosting provider's server-side environment settings; never add credentials to frontend code or commit them to Git.
+
+Set these environment variables on the server:
+
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_FROM_NUMBER` (your SMS-enabled Twilio number)
+- `TWILIO_VERIFY_SERVICE_SID` (a Twilio Verify service)
+- `TWILIO_VERIFY_PHONE_RATE_LIMIT` (the Verify rate limit's unique name)
+- `CONTACT_TOKEN_SECRET` (a separate long random secret used to sign verified-contact tokens)
+
+Create a Verify rate limit named `contact_phone` and a bucket such as 3 verification messages per phone number per hour, then set `TWILIO_VERIFY_PHONE_RATE_LIMIT=contact_phone`. Enable Twilio's verification fraud protections and restrict supported destination countries in the Twilio Console. These controls matter because this is a public demo. The recipient must enter the OTP and the site user must confirm they have permission to send assessment updates. Verified numbers can be from any country supported by your Twilio account, in international `+` format; a 10-digit Indian mobile is also accepted and converted to `+91`.
+
+The message includes the estimated risk category; it is an educational estimate, not a diagnosis. Low estimates send a normal update, while moderate and high estimates send an alert. SMS charges and delivery depend on the provider and carrier. A website cannot control the recipient's phone sound settings or override Silent / Do Not Disturb. The SOS call and location steps remain a simulation.
+
+### Vercel deployment notes
+
+The root `index.py` exposes the Flask app to Vercel. User login/check-in data uses a temporary `/tmp` file on Vercel Functions and may be lost when an instance restarts; use a managed database for persistent production data. For the interview demo, keep SMS demo mode enabled. Add Twilio credentials only as Vercel server-side environment variables if real SMS is intentionally configured.
+
+For local PowerShell development, set the variables in the current shell before starting Flask, for example:
+
+```powershell
+$env:TWILIO_ACCOUNT_SID = "your-account-sid"
+$env:TWILIO_AUTH_TOKEN = "your-auth-token"
+$env:TWILIO_FROM_NUMBER = "+1XXXXXXXXXX"
+$env:TWILIO_VERIFY_SERVICE_SID = "VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+$env:TWILIO_VERIFY_PHONE_RATE_LIMIT = "contact_phone"
+$env:CONTACT_TOKEN_SECRET = "use-a-separate-long-random-secret"
+python backend/app.py
+```
+
+Do not use real health data or recipient numbers in an interview demo. Use a provider test account and a verified test recipient where available.
 
 ---
 

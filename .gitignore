@@ -35,8 +35,10 @@ venv.bak/
 .env
 .env.local
 .env.*.local
+.vercel/
 *.pem
 *.key
+*.log
 
 # Runtime database & local user data
 backend/data/*.json

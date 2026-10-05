@@ -7,7 +7,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 async function api(url, body) {
   const r = await fetch(url, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error || "Something went wrong.");
+  if (!r.ok) throw new Error(j.error || j.message || "Something went wrong.");
   return j;
 }
 
@@ -40,7 +40,11 @@ $("submit").onclick = async () => {
   if (!$("gender").value) { $("err").textContent = "Select your gender."; return; }
   const body = { age: $("age").value, gender: $("gender").value, sys: $("sys").value, dia: $("dia").value, chol: $("chol").value, hr: $("hr").value,
     smoking: radio("smoking"), diabetes: radio("diabetes"), family: radio("family"), chest: radio("chest") };
-  try { showResult(await api("/api/risk", body)); } catch (e) { $("err").textContent = e.message; }
+  try {
+    const result = await api("/api/risk", body);
+    showResult(result);
+    sendAssessmentSms(result.level);
+  } catch (e) { $("err").textContent = e.message; }
 };
 
 let actx, timer, muted = false;
@@ -70,6 +74,7 @@ function showResult(r) {
   $("rFactors").innerHTML = (r.factors.length ? r.factors : ["No major risk factors found"]).map(f => `<li>${esc(f)}</li>`).join("");
   $("rMeans").textContent = "This estimate is based on the information you provided and is not a diagnosis. Please consult a healthcare professional for a proper evaluation." +
     (r.level === "High" ? " If you have chest pain right now, call 108 immediately." : "");
+  $("smsStatus").textContent = "";
   $("sos").style.display = $("playAlert").style.display = r.level === "High" ? "flex" : "none";
   go("result");
   if (r.level === "High") showEmergencySimulation();
@@ -109,7 +114,10 @@ function paintUser() {
   $("loginBtn").textContent = S.user ? "Log out" : "Login";
 }
 $("loginBtn").onclick = () => { if (S.user) { S.user = null; localStorage.removeItem("hg_user"); paintUser(); go("home"); } else go("login"); };
+$("lName").addEventListener("input", () => { $("lErr").textContent = ""; });
+$("lId").addEventListener("input", () => { $("lErr").textContent = ""; });
 $("lGo").onclick = async () => {
+  $("lErr").textContent = "";
   try {
     S.user = await api("/api/login", { name: $("lName").value, id: $("lId").value });
     localStorage.setItem("hg_user", JSON.stringify(S.user)); paintUser(); go("dashboard");
@@ -153,7 +161,7 @@ function showEmergencySimulation() {
   $("sosModal").classList.add("show");
   $("sosBody").innerHTML = `<p class="sos-ico">&#9888;&#65039;</p><h2 id="sosTitle">HIGH RISK DETECTED</h2>
    <p>Your entered health values indicate a potentially elevated cardiovascular risk. This tool is not a medical diagnosis. If you have chest pain, breathing difficulty, fainting or sweating, seek immediate medical care.</p>
-   <p class="sos-count">Emergency support will be activated in <b id="sosSec">10</b> seconds</p>
+   <p class="sos-count">The SOS demo starts in <b id="sosSec">10</b> seconds</p>
    <button class="sos-cancel" id="sosCancel">Cancel Alert</button><a class="sos-call" href="tel:112">Call 112 Now</a>
    <p class="sos-demo">DEMO MODE: this prototype never places a real emergency call.</p>`;
   $("sosCancel").onclick = cancelSOS;
@@ -177,7 +185,7 @@ function runSimulation() {
     ["Dialling Emergency Service 112 (simulated)", 1],
     ["Call connected: emergency operator (simulated)", 1],
     [`Location sharing completed: ${loc} (simulated)`, 1],
-    c ? [`Trusted contact notified: ${c.name}, ${c.phone} (simulated)`, 1] : ["No trusted contact saved. Add one on the Emergency page.", 0],
+    c ? [`Trusted contact notification simulated: ${c.name}. SMS updates are handled after assessment when configured.`, 1] : ["No trusted contact saved. Add one on the Emergency page.", 0],
   ];
   $("sosBody").innerHTML = `<p class="sos-ico">&#128222;</p><h2 id="sosTitle">Simulated Emergency Call</h2>
    <p class="sos-demo big">DEMO MODE: No real emergency call was made.</p><ul class="sos-log" id="sosLog"></ul><div id="sosEnd"></div>`;
@@ -194,11 +202,129 @@ function runSimulation() {
 $("sosAgain").onclick = showEmergencySimulation;
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("sosModal").classList.contains("show")) closeSOS(); });
 
-/* trusted contact (kept in this browser only) */
-(() => { const c = getContact(); if (c) { $("tcName").value = c.name; $("tcPhone").value = c.phone; $("tcRel").value = c.rel; } })();
-$("tcSave").onclick = () => {
-  const name = $("tcName").value.trim(), phone = $("tcPhone").value.trim().replace(/[\s-]/g, "");
-  if (!name || !/^(\+91)?[6-9]\d{9}$/.test(phone)) { $("tcMsg").textContent = "Enter a name and a valid 10-digit Indian mobile number."; return; }
-  localStorage.setItem("hg_contact", JSON.stringify({ name, phone: $("tcPhone").value.trim(), rel: $("tcRel").value }));
-  $("tcMsg").textContent = "Saved on this device. Demo only: no SMS or call is ever sent.";
+/* trusted contact and explicit SMS demo/real-send mode */
+const SMS_DEMO_KEY = "hg_sms_demo_mode";
+const isSmsDemoMode = () => localStorage.getItem(SMS_DEMO_KEY) !== "false";
+const demoModeToggle = $("smsDemoMode");
+demoModeToggle.checked = isSmsDemoMode();
+(() => { const c = getContact(); if (c) { $("tcName").value = c.name; $("tcPhone").value = c.phone; $("tcRel").value = c.rel; $("tcConsent").checked = c.consent === true; } })();
+function updateSmsModeUi() {
+  const demo = isSmsDemoMode();
+  $("smsModeLabel").textContent = demo
+    ? "Demo mode — ON (no real SMS will be sent)"
+    : "REAL SMS mode — ON (assessment messages may be sent)";
+  $("tcSendCode").hidden = demo;
+  $("tcConsentLabel").hidden = demo;
+  if (demo) {
+    $("tcVerifyPanel").hidden = true;
+    $("tcVerifyMsg").textContent = "Demo mode does not send a verification code.";
+  } else {
+    const contact = getContact();
+    $("tcVerifyMsg").textContent = contact?.verificationToken && contact.verificationExpiresAt > Date.now() / 1000
+      ? "This saved number is verified. Confirm again after changing the number." : "Verify the contact before enabling real SMS.";
+  }
+}
+demoModeToggle.onchange = () => {
+  if (!demoModeToggle.checked && !window.confirm("Turn off demo mode? A verified contact may receive real SMS after assessments when the SMS provider is configured.")) {
+    demoModeToggle.checked = true;
+    return;
+  }
+  localStorage.setItem(SMS_DEMO_KEY, String(demoModeToggle.checked));
+  $("tcMsg").textContent = demoModeToggle.checked
+    ? "Demo mode is on. Assessments will show message previews and will not send SMS."
+    : "Real SMS mode is selected. Only a verified contact with consent can receive messages.";
+  updateSmsModeUi();
+};
+updateSmsModeUi();
+$("tcConsent").onchange = () => {
+  $("tcMsg").textContent = "";
+  const contact = getContact();
+  if (contact && !$("tcConsent").checked) {
+    contact.consent = false;
+    localStorage.setItem("hg_contact", JSON.stringify(contact));
+  }
+};
+async function sendAssessmentSms(level) {
+  const contact = getContact();
+  const message = level === "Low"
+    ? "HeartGuard update: the assessment estimated lower heart risk. This is educational information, not a diagnosis."
+    : `HeartGuard risk alert: the assessment estimated ${level.toLowerCase()} heart risk. This is not a diagnosis. If there are emergency symptoms, contact local emergency services.`;
+  if (isSmsDemoMode()) {
+    const destination = contact ? `${contact.name} (${contact.phone})` : "No trusted contact saved";
+    $("smsStatus").textContent = `DEMO MODE — NOT SENT\nTo: ${destination}\n${level === "Low" ? "Normal message preview" : "Risk-alert message preview"}: ${message}`;
+    return;
+  }
+  if (!contact || contact.consent !== true || !contact.verificationToken || contact.verificationExpiresAt <= Date.now() / 1000) {
+    $("smsStatus").textContent = "No SMS sent. Verify and save a trusted contact with SMS consent on the Emergency page.";
+    return;
+  }
+  $("smsStatus").textContent = "Sending an assessment update to your opted-in contact…";
+  try {
+    const result = await api("/api/notify", { phone: contact.phone, level, consent: true, verification_token: contact.verificationToken });
+    $("smsStatus").textContent = result.message;
+  } catch (e) {
+    $("smsStatus").textContent = e.message;
+  }
+}
+
+/* Verify contact ownership before enabling automatic SMS to that number. */
+let verifiedContact = null;
+let verificationTargetPhone = null;
+const normalizedPhone = value => {
+  const phone = String(value || "").replace(/[\s()-]/g, "");
+  if (/^[6-9]\d{9}$/.test(phone)) return "+91" + phone;
+  return /^\+[1-9]\d{7,14}$/.test(phone) ? phone : null;
+};
+(() => {
+  const c = getContact();
+  if (c) {
+    if (c.verificationToken && c.verificationExpiresAt > Date.now() / 1000) {
+      verifiedContact = { phone: normalizedPhone(c.phone), token: c.verificationToken, expiresAt: c.verificationExpiresAt };
+      $("tcVerifyMsg").textContent = "This saved number is verified.";
+    }
+  }
+})();
+function saveTrustedContact() {
+  const name = $("tcName").value.trim(), phone = normalizedPhone($("tcPhone").value);
+  if (!name || !phone) { $("tcMsg").textContent = "Enter a name and a valid phone number with country code (for India, +91 is supported)."; return; }
+  if (isSmsDemoMode()) {
+    localStorage.setItem("hg_contact", JSON.stringify({ name, phone, rel: $("tcRel").value, consent: false }));
+    verifiedContact = null;
+    $("tcMsg").textContent = "Demo contact saved on this device. Assessments will display a message preview only; nothing will be sent.";
+    return;
+  }
+  if (!verifiedContact || verifiedContact.phone !== phone || verifiedContact.expiresAt <= Date.now() / 1000) {
+    $("tcMsg").textContent = "Verify the phone number before saving it for real SMS."; return;
+  }
+  if (!$("tcConsent").checked) { $("tcMsg").textContent = "Please confirm this person has agreed to receive assessment SMS updates."; return; }
+  localStorage.setItem("hg_contact", JSON.stringify({ name, phone, rel: $("tcRel").value, consent: true,
+    verificationToken: verifiedContact.token, verificationExpiresAt: verifiedContact.expiresAt }));
+  $("tcMsg").textContent = "Verified contact saved on this device. Real SMS can be attempted after assessments when the provider is configured.";
+}
+$("tcSave").onclick = saveTrustedContact;
+$("tcSendCode").onclick = async () => {
+  const phone = normalizedPhone($("tcPhone").value);
+  $("tcVerifyMsg").textContent = "";
+  if (!phone) { $("tcVerifyMsg").textContent = "Enter a valid phone number with its country code (for India, +91 is supported)."; return; }
+  $("tcSendCode").disabled = true;
+  try {
+    const result = await api("/api/contact/send-code", { phone });
+    verificationTargetPhone = result.phone;
+    verifiedContact = null;
+    $("tcCode").value = "";
+    $("tcVerifyPanel").hidden = false;
+    $("tcVerifyMsg").textContent = result.message;
+  } catch (e) { $("tcVerifyMsg").textContent = e.message; }
+  finally { $("tcSendCode").disabled = false; }
+};
+$("tcVerifyCode").onclick = async () => {
+  const phone = normalizedPhone($("tcPhone").value), code = $("tcCode").value.trim();
+  if (!phone || phone !== verificationTargetPhone) { $("tcVerifyMsg").textContent = "Verify the number currently entered."; return; }
+  $("tcVerifyCode").disabled = true;
+  try {
+    const result = await api("/api/contact/verify", { phone, code });
+    verifiedContact = { phone: result.phone, token: result.verification_token, expiresAt: result.expires_at };
+    $("tcVerifyMsg").textContent = "Number verified. You can now save it as your trusted contact.";
+  } catch (e) { $("tcVerifyMsg").textContent = e.message; }
+  finally { $("tcVerifyCode").disabled = false; }
 };

@@ -83,7 +83,7 @@
    <div class="ring" id="ring"><div><b id="rScore"></b><small>Risk Score</small></div></div>
    <div><h3>Key Risk Factors</h3><ul id="rFactors"></ul></div>
   </div>
-  <div class="card"><h3>What This Means</h3><p class="mut" id="rMeans"></p>
+  <div class="card"><h3>What This Means</h3><p class="mut" id="rMeans"></p><p class="mut sms-status" id="smsStatus" role="status" aria-live="polite"></p>
    <div id="sos" class="sos"><a href="tel:108">Ambulance 108</a><a href="tel:112">Emergency 112</a><button class="btn ghost sm" id="sosAgain">Run SOS demo</button></div></div>
   <p class="disclaimer"><b>Medical Disclaimer:</b> HeartGuard is an educational prototype and does not provide medical diagnosis or emergency dispatch. It must not replace professional medical advice, diagnosis, or treatment. If you have symptoms of a medical emergency, call 112 or your local emergency service immediately.</p>
   <div class="row"><button class="btn" data-go="tips">View Precautions &amp; Tips</button><button class="btn ghost" data-go="hospitals">Find Nearby Hospitals</button></div>
@@ -99,10 +99,15 @@
    <div class="two"><a href="tel:112"><b>112</b><small>National Emergency Number (Police, Fire, Ambulance)</small></a><a href="tel:108"><b>108 / 102</b><small>Ambulance Services</small></a></div></div>
   <div class="card"><h3>When to seek emergency care?</h3><ul class="red"><li>Severe chest pain or pressure</li><li>Sudden shortness of breath</li><li>Fainting or loss of consciousness</li><li>Pain in arm, jaw, neck or back</li></ul><b>Time matters. Don't wait.</b></div>
   <div class="card narrow"><h3>Trusted Contact (optional)</h3>
-   <p class="mut">Used only in the SOS demo. It is saved in this browser and no SMS or call is ever sent.</p>
+   <label class="demo-mode"><input id="smsDemoMode" type="checkbox" checked> <span><b id="smsModeLabel">Demo mode — ON (no real SMS will be sent)</b><small>After an assessment, HeartGuard will display the normal-message or risk-alert preview here on the results page.</small></span></label>
+   <p class="mut">Turn demo mode off only when real SMS is configured. Real SMS requires a verified number and the recipient's permission. SMS cannot override the recipient's Silent or Do Not Disturb settings.</p>
    <label>Contact name<input id="tcName" placeholder="e.g. Priya Sharma"></label>
-   <label>Phone number<input id="tcPhone" inputmode="tel" placeholder="+91 98XXXXXXXX"></label>
+   <label>Phone number<input id="tcPhone" inputmode="tel" placeholder="+91 98XXXXXXXX or +country code"></label>
+   <button class="btn ghost sm" id="tcSendCode" type="button" hidden>Verify this number</button>
+   <div id="tcVerifyPanel" hidden><label>Verification code<input id="tcCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Code from SMS"></label><button class="btn ghost sm" id="tcVerifyCode" type="button">Confirm number</button></div>
+   <p class="mut" id="tcVerifyMsg" role="status" aria-live="polite"></p>
    <label>Relationship<select id="tcRel"><option>Parent</option><option>Friend</option><option>Guardian</option><option>Spouse</option><option>Other</option></select></label>
+   <label class="consent" id="tcConsentLabel" hidden><input id="tcConsent" type="checkbox"> I have permission from this person to receive an SMS after each assessment. The message may include the estimated risk level.</label>
    <p class="mut" id="tcMsg" role="status"></p><button class="btn" id="tcSave">Save contact</button></div>
  </section>
 
